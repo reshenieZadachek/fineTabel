@@ -102,8 +102,34 @@ const IdWrapper = styled.div`
   display: flex;
   flex-direction: column;
   width: 400px;
-  height: 400px;
+  height: 200px;
   overflow: auto;
+  border-radius: 10px;
+  padding: 10px 15px;
+  background-color: #1e1e1e; // Dark background to match the site theme
+
+  /* Webkit browsers like Chrome, Safari */
+  &::-webkit-scrollbar {
+    width: 12px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #2c2c2c;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #4a4a4a;
+    border-radius: 6px;
+    border: 3px solid #2c2c2c;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: #5a5a5a;
+  }
+
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: #4a4a4a #2c2c2c;
 `;
 const InputKey = styled.input`
   display: flex;
