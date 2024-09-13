@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import TapBut from './TapBut';
 import * as XLSX from 'xlsx';
+import { Link, useLocation } from 'react-router-dom';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const MainContainer = styled.main`
   margin-top: 70px;
@@ -21,6 +23,21 @@ const Row = styled.div`
   flex-wrap: wrap;
   color: white;
   margin-bottom: 1rem;
+`;
+const StyledLink = styled(Link)`
+  padding: 10px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: white;
+  background-color: ${props => props.$isActive ? '#153277' : '#2751B7'};
+  margin: 0 10px;
+  transition: all 0.2s;
+  &:hover {
+    background-color: #153277;
+  }
+  &:active {
+    background-color: #153277;
+  }
 `;
 
 const DateInput = styled.div`
@@ -53,14 +70,6 @@ const CalendarHeader = styled.div`
 const MonthYearDisplay = styled.div`
   font-size: 18px;
   font-weight: bold;
-  color: #333;
-`;
-
-const NavButton = styled.button`
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
   color: #333;
 `;
 
@@ -136,7 +145,8 @@ const InputKey = styled.input`
   flex-direction: column;
   margin: 10px;
   padding: 10px;
-  width: 100px;
+  width: 160px;
+  justify-content: center;
   height: 25px;
   border-radius: 10px;
   overflow: auto;
@@ -155,6 +165,36 @@ const ExportButton = styled.button`
     background-color: #45a049;
   }
 `;
+const MonthSelect = styled.select`
+  padding: 8px 12px;
+  border-radius: 4px;
+  background-color: white;
+  color: black;
+  cursor: pointer;
+`;
+const DayNavigation = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+`;
+const NavButton = styled.button`
+  background: none;
+  border: none;
+  color: #ff0000;
+  font-size: 24px;
+  cursor: pointer;
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const DateDisplay = styled.span`
+  margin: 0 1rem;
+  font-size: 18px;
+  color: white;
+`;
+
 const Calendar = ({ selectedDate, onDateSelect, onClose }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date(selectedDate));
   const weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
@@ -235,15 +275,44 @@ const Calendar = ({ selectedDate, onDateSelect, onClose }) => {
 };
 
 const Main = () => {
+  const location = useLocation()
+  const isDay = location.pathname === '/day'
   const [secretKey, setSecretKey] = useState('')
-  const [chechKey, setChechKey] = useState('Нажмите создать чтобы проверитьь код')
+  const [chechKey, setChechKey] = useState('Нажмите "Создать" чтобы проверить ключ')
   const [phones, setPhones] = useState([]);
   const [selectedDate, setSelectedDate] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   });
+  const [currentDayIndex, setCurrentDayIndex] = useState(0);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const calendarRef = useRef(null);
+
+
+  const months = [
+    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
+    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+  ];
+
+
+  const handleMonthSelect = (event) => {
+    const selectedMonth = event.target.value;
+    const monthIndex = months.indexOf(selectedMonth);
+    const year = new Date().getFullYear();
+    setSelectedDate(`${year}-${String(monthIndex + 1).padStart(2, '0')}-01`);
+  };
+
+  const handlePrevDay = () => {
+    if (currentDayIndex > 0) {
+      setCurrentDayIndex(currentDayIndex - 1);
+    }
+  };
+
+  const handleNextDay = () => {
+    if (currentDayIndex < phones.length - 1) {
+      setCurrentDayIndex(currentDayIndex + 1);
+    }
+  };
 
   const handleDateSelect = (date) => {
     setSelectedDate(date);
@@ -264,27 +333,41 @@ const Main = () => {
   }, []);
 
   const exportToExcel = () => {
-    const ws = XLSX.utils.aoa_to_sheet(phones.map(phone => [phone]));
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Phones");
-    
-    // Generate buffer
-    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    
-    // Save to file
-    const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = window.URL.createObjectURL(data);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `phone_numbers_${selectedDate}.xlsx`;
-    link.click();
-    
-    // Clean up
-    window.URL.revokeObjectURL(url);
+  
+    if (isDay) {
+      // Экспорт данных за день
+      const ws = XLSX.utils.aoa_to_sheet(phones[0].phones.map(phone => [phone]));
+      XLSX.utils.book_append_sheet(wb, ws, "Phones");
+      
+      // Генерация имени файла для дневного отчета
+      const fileName = `phone_numbers_${selectedDate}.xlsx`;
+      
+      // Сохранение файла
+      XLSX.writeFile(wb, fileName);
+    } else {
+      // Экспорт данных за месяц
+      phones.forEach((dayData) => {
+        const ws = XLSX.utils.aoa_to_sheet(dayData.phones.map(phone => [phone]));
+        XLSX.utils.book_append_sheet(wb, ws, dayData.date);
+      });
+      
+      // Генерация имени файла для месячного отчета
+      const [year, month] = selectedDate.split('-');
+      const monthName = new Date(year, month - 1, 1).toLocaleString('ru-RU', { month: 'long' });
+      const fileName = `phone_numbers_${monthName}_${year}.xlsx`;
+      
+      // Сохранение файла
+      XLSX.writeFile(wb, fileName);
+    }
   };
 
   return (
     <MainContainer>
+      <Row>
+        <StyledLink $isActive={isDay} to={'/day'}>Создать таблицу на день</StyledLink>
+        <StyledLink $isActive={!isDay} to={'/month'}>Создать таблицу на месяц</StyledLink>
+      </Row>
       <Row>
         <InputKey
         placeholder='Введите секретный ключ'
@@ -296,23 +379,71 @@ const Main = () => {
             </div>
       </Row>
       <Row>
-        <div>СОЗДАТЬ ТАБЛИЦУ НА &nbsp;</div>
-        <DateInput onClick={() => setIsCalendarOpen(true)}>
-          {selectedDate}
-        </DateInput>
+        <div>{
+          isDay ?
+          'ВЫБЕРИТЕ ДАТУ НА КОТОРУЮ СОЗДАТЬ ТАБЛИЦУ'
+          :
+          'ВЫБЕРИТЕ МЕСЯЦ НА КОТОРЫЙ СОЗДАТЬ ТАБЛИЦУ'} &nbsp;
+        </div>
+        {
+          isDay ?
+          <DateInput onClick={() => setIsCalendarOpen(true)}>
+            {selectedDate}
+          </DateInput>
+          :
+          <MonthSelect onChange={handleMonthSelect}>
+            {months.map((month, index) => (
+              <option key={index} value={month}>{month}</option>
+            ))}
+          </MonthSelect>
+        }
       </Row>
       <Row>
-        <TapBut selectedDate={selectedDate} setPhones={setPhones} secretKey={secretKey} setChechKey={setChechKey} />
+        <TapBut selectedDate={selectedDate} setPhones={setPhones} secretKey={secretKey} setChechKey={setChechKey} isDay={isDay} />
       </Row>
-      <Row>
-        <IdWrapper>
-          {phones.map((phone, index) => (
-            <p key={index}>
-              {index + 1}: {phone}
-            </p>
-          ))}
-        </IdWrapper>
-      </Row>
+      {isDay ? (
+        // Отображение для режима "день"
+        <Row>
+          <IdWrapper>
+            {phones.map((phoneData, index) => (
+              <div key={index}>
+                <p>Дата: {phoneData.date}</p>
+                {phoneData.phones.map((phone, phoneIndex) => (
+                  <p key={phoneIndex}>
+                    {phoneIndex + 1}: {phone}
+                  </p>
+                ))}
+              </div>
+            ))}
+          </IdWrapper>
+        </Row>
+      ) : (
+        // Отображение для режима "месяц"
+        <>
+          <DayNavigation>
+            <NavButton onClick={handlePrevDay} disabled={currentDayIndex === 0 || phones.length === 0}>
+              <ChevronLeft />
+            </NavButton>
+            <DateDisplay>{phones.length > 0 ? phones[currentDayIndex].date : selectedDate}</DateDisplay>
+            <NavButton onClick={handleNextDay} disabled={currentDayIndex === phones.length - 1 || phones.length === 0}>
+              <ChevronRight />
+            </NavButton>
+          </DayNavigation>
+          <Row>
+            <IdWrapper>
+              {phones.length > 0 ? (
+                phones[currentDayIndex].phones.map((phone, index) => (
+                  <p key={index}>
+                    {index + 1}: {phone}
+                  </p>
+                ))
+              ) : (
+                <p>Нет данных для отображения</p>
+              )}
+            </IdWrapper>
+          </Row>
+        </>
+      )}
       {phones.length > 0 && (
         <ExportButton onClick={exportToExcel}>
           Экспортировать в Excel
