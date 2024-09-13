@@ -2,11 +2,16 @@ import React from 'react';
 import styled from 'styled-components';
 
 const ProgressBarContainer = styled.div`
-  width: 100%;
-  background-color: #e0e0e0;
-  height: ${({ small }) => (small ? '5px' : '20px')}; /* Меньшая высота для маленького бара */
-  border-radius: 10px;
-  margin-top: ${({ small }) => (small ? '0' : '10px')};
+    position: absolute;
+    bottom: 5px;
+    display: flex;
+    left: 0;
+    width: 100%;
+    background-color: #e0e0e0;
+    height: 3px;
+    border-radius: 10px;
+    margin-top: 0;
+    align-self: flex-start;
 `;
 
 const ProgressBarFill = styled.div`
