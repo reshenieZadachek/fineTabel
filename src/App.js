@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import Header from './components/Header';
 import Main from './components/Main';
@@ -11,10 +11,11 @@ const AppContainer = styled.div`
 `
 
 const App = () => {
+  const [progress, setProgress] = useState(0);
   return (
     <AppContainer>
-        <Header />
-        <Main />
+        <Header progress={progress} />
+        <Main setProgress={setProgress} />
         <Footer />
     </AppContainer>
   );

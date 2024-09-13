@@ -274,7 +274,7 @@ const Calendar = ({ selectedDate, onDateSelect, onClose }) => {
   );
 };
 
-const Main = () => {
+const Main = ({setProgress}) => {
   const location = useLocation()
   const isDay = location.pathname === '/day'
   const [secretKey, setSecretKey] = useState('')
@@ -399,7 +399,7 @@ const Main = () => {
         }
       </Row>
       <Row>
-        <TapBut selectedDate={selectedDate} setPhones={setPhones} secretKey={secretKey} setChechKey={setChechKey} isDay={isDay} />
+        <TapBut selectedDate={selectedDate} setPhones={setPhones} secretKey={secretKey} setChechKey={setChechKey} isDay={isDay} setProgress={setProgress} />
       </Row>
       {isDay ? (
         // Отображение для режима "день"

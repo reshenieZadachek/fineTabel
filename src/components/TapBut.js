@@ -18,8 +18,7 @@ const StyledButton = styled.button`
   }
 `;
 
-const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay }) => {
-  
+const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay, setProgress }) => {
   const getDaysInMonth = (year, month) => {
     return new Date(year, month + 1, 0).getDate();
   };
@@ -32,7 +31,7 @@ const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay }) => {
     firtsResponse['requests'].forEach(el => {
       if (el['project']['id'] === 1) {
         allMas.push(el['communications']['0']['phones']);
-      } 
+      }
     });
     
     for (let i = 1; i < Math.ceil(((firtsResponse['statuses']['4']['count']) - 20) / 20) + 1; i++) {
@@ -43,7 +42,7 @@ const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay }) => {
         }           
       });
     }
-    
+
     return [...new Set(
       allMas.map(number => 
         (typeof number[0] === 'string' && number.length > 0) ? number[0].replace(/\+/g, '') : ''
@@ -55,10 +54,12 @@ const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay }) => {
     try {
       setPhones([]);
       setChechKey('Ваш ключ введен верно, ожидайте формирования таблицы');
-      
+      setProgress(0); // Сбрасываем прогресс
+
       if (isDay) {
         const cleanedPhoneNumbers = await fetchDataForDate(selectedDate);
         setPhones([{ date: selectedDate, phones: cleanedPhoneNumbers }]);
+        setProgress(100); // Устанавливаем прогресс 100% для одного дня
       } else {
         const [year, month] = selectedDate.split('-').map(Number);
         const daysInMonth = getDaysInMonth(year, month - 1);
@@ -69,8 +70,11 @@ const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay }) => {
           const dayData = await fetchDataForDate(date);
           monthData.push({ date, phones: dayData });
           
+          // Обновляем прогресс в зависимости от текущего дня
+          setProgress(Math.round((day / daysInMonth) * 100));
+          
           if (day < daysInMonth) {
-            await delay(1000); // 2 секунды задержки между запросами
+            await delay(500); // Задержка между запросами
           }
         }
         setPhones(monthData);
@@ -82,7 +86,9 @@ const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay }) => {
   };
 
   return (
-    <StyledButton onClick={clickTapFunc}>Создать</StyledButton>
+    <>
+      <StyledButton onClick={clickTapFunc}>Создать</StyledButton>
+    </>
   );
 };
 
