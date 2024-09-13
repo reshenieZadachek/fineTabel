@@ -25,7 +25,7 @@ const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay, setPro
 
   const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-  const fetchDataForDate = async (date) => {
+  const fetchDataForDate = async (date, updateProgress) => {
     let allMas = [];
     const firtsResponse = await httpGetSpam(date, 0, 0, secretKey);
     firtsResponse['requests'].forEach(el => {
@@ -33,7 +33,7 @@ const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay, setPro
         allMas.push(el['communications']['0']['phones']);
       }
     });
-    
+
     const totalPages = Math.ceil(((firtsResponse['statuses']['4']['count']) - 20) / 20) + 1;
     
     for (let i = 1; i < totalPages; i++) {
@@ -41,8 +41,13 @@ const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay, setPro
       response['requests'].forEach(el => {
         if (el['project'] && el['project']['id'] === 1 && el['communications'] && el['communications']['0'] && el['communications']['0']['phones']) {
           allMas.push(el['communications']['0']['phones']);
-        }           
+        }
       });
+
+      // Обновляем прогресс после каждого запроса страницы
+      const progressIncrement = (1 / totalPages) * updateProgress;
+      setProgress(prev => Math.min(100, prev + progressIncrement));
+      await delay(300); // Имитация задержки для более плавного обновления
     }
 
     return [...new Set(
@@ -63,7 +68,7 @@ const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay, setPro
       if (isDay) {
         const selectedDateObj = new Date(selectedDate);
         if (selectedDateObj <= currentDate) {
-          const cleanedPhoneNumbers = await fetchDataForDate(selectedDate);
+          const cleanedPhoneNumbers = await fetchDataForDate(selectedDate, 100);
           setPhones([{ date: selectedDate, phones: cleanedPhoneNumbers }]);
         } else {
           setPhones([{ date: selectedDate, phones: [] }]);
@@ -79,13 +84,15 @@ const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay, setPro
           const currentDateObj = new Date(date);
           
           if (currentDateObj <= currentDate) {
-            const dayData = await fetchDataForDate(date);
+            // Передаем прогресс за каждый день в fetchDataForDate
+            const dayData = await fetchDataForDate(date, 100 / daysInMonth);
             monthData.push({ date, phones: dayData });
           } else {
             monthData.push({ date, phones: [] });
           }
           
-          setProgress(Math.round((day / daysInMonth) * 100));
+          // Прогресс по дням
+          setProgress(prev => Math.min(100, prev + (100 / daysInMonth)));
           
           if (day < daysInMonth && currentDateObj <= currentDate) {
             await delay(500);

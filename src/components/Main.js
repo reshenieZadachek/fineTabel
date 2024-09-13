@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import TapBut from './TapBut';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -336,32 +337,64 @@ const availableMonths = months.slice(0, currentMonth + 1);
   }, []);
 
   const exportToExcel = () => {
-    const wb = XLSX.utils.book_new();
+    const workbook = new ExcelJS.Workbook();
+    
+    const createSheet = (data, sheetName) => {
+      const worksheet = workbook.addWorksheet(sheetName);
+  
+      // Заголовки
+      worksheet.columns = [
+        { header: 'Спам', key: 'phone', width: 15 },
+        { header: 'Комментарий', key: 'comment', width: 30 },
+      ];
+  
+      // Форматирование заголовков
+      worksheet.getRow(1).font = { bold: true };
+  
+      // Добавление данных
+      data.forEach((phone, index) => {
+        worksheet.addRow({ phone, comment: '' });
+  
+        // Применение пунктирных границ к строке с номером
+        const row = worksheet.getRow(index + 2); // Сдвиг на 2, чтобы пропустить заголовки
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          cell.border = {
+            top: { style: 'dotted' },
+            left: { style: 'dotted' },
+            bottom: { style: 'dotted' },
+            right: { style: 'dotted' },
+          };
+        });
+      });
+    };
   
     if (isDay) {
-      // Экспорт данных за день
-      const ws = XLSX.utils.aoa_to_sheet(phones[0].phones.map(phone => [phone]));
-      XLSX.utils.book_append_sheet(wb, ws, "Phones");
-      
-      // Генерация имени файла для дневного отчета
+      // Экспорт данных за один день
+      if (phones.length > 0 && phones[0] && phones[0].phones) {
+        createSheet(phones[0].phones, phones[0].date);
+      }
+  
       const fileName = `phone_numbers_${selectedDate}.xlsx`;
-      
-      // Сохранение файла
-      XLSX.writeFile(wb, fileName);
-    } else {
-      // Экспорт данных за месяц
-      phones.forEach((dayData) => {
-        const ws = XLSX.utils.aoa_to_sheet(dayData.phones.map(phone => [phone]));
-        XLSX.utils.book_append_sheet(wb, ws, dayData.date);
+      workbook.xlsx.writeBuffer().then((buffer) => {
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(blob, fileName);
       });
-      
-      // Генерация имени файла для месячного отчета
+    } else {
+      // Экспорт данных за весь месяц
+      phones.forEach((dayData) => {
+        if (dayData && dayData.phones) {
+          createSheet(dayData.phones, dayData.date);
+        }
+      });
+  
       const [year, month] = selectedDate.split('-');
       const monthName = new Date(year, month - 1, 1).toLocaleString('ru-RU', { month: 'long' });
       const fileName = `phone_numbers_${monthName}_${year}.xlsx`;
-      
-      // Сохранение файла
-      XLSX.writeFile(wb, fileName);
+  
+      workbook.xlsx.writeBuffer().then((buffer) => {
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(blob, fileName);
+      });
     }
   };
 
