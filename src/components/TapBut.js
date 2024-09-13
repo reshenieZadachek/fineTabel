@@ -18,7 +18,7 @@ const StyledButton = styled.button`
   }
 `;
 
-const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay, setProgress }) => {
+const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay, setProgress, currentDate }) => {
   const getDaysInMonth = (year, month) => {
     return new Date(year, month + 1, 0).getDate();
   };
@@ -29,23 +29,27 @@ const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay, setPro
     let allMas = [];
     const firtsResponse = await httpGetSpam(date, 0, 0, secretKey);
     firtsResponse['requests'].forEach(el => {
-      if (el['project']['id'] === 1) {
+      if (el['project'] && el['project']['id'] === 1 && el['communications'] && el['communications']['0'] && el['communications']['0']['phones']) {
         allMas.push(el['communications']['0']['phones']);
       }
     });
     
-    for (let i = 1; i < Math.ceil(((firtsResponse['statuses']['4']['count']) - 20) / 20) + 1; i++) {
+    const totalPages = Math.ceil(((firtsResponse['statuses']['4']['count']) - 20) / 20) + 1;
+    
+    for (let i = 1; i < totalPages; i++) {
       const response = await httpGetSpam(date, 1, i * 20, secretKey);
       response['requests'].forEach(el => {
-        if (el['project']['id'] === 1) {
+        if (el['project'] && el['project']['id'] === 1 && el['communications'] && el['communications']['0'] && el['communications']['0']['phones']) {
           allMas.push(el['communications']['0']['phones']);
         }           
       });
     }
 
     return [...new Set(
-      allMas.map(number => 
-        (typeof number[0] === 'string' && number.length > 0) ? number[0].replace(/\+/g, '') : ''
+      allMas.flatMap(numbers => 
+        Array.isArray(numbers) ? numbers.map(number => 
+          (typeof number === 'string' && number.length > 0) ? number.replace(/\+/g, '') : ''
+        ) : []
       )
     )].filter(Boolean);
   };
@@ -54,12 +58,17 @@ const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay, setPro
     try {
       setPhones([]);
       setChechKey('Ваш ключ введен верно, ожидайте формирования таблицы');
-      setProgress(0); // Сбрасываем прогресс
+      setProgress(0);
 
       if (isDay) {
-        const cleanedPhoneNumbers = await fetchDataForDate(selectedDate);
-        setPhones([{ date: selectedDate, phones: cleanedPhoneNumbers }]);
-        setProgress(100); // Устанавливаем прогресс 100% для одного дня
+        const selectedDateObj = new Date(selectedDate);
+        if (selectedDateObj <= currentDate) {
+          const cleanedPhoneNumbers = await fetchDataForDate(selectedDate);
+          setPhones([{ date: selectedDate, phones: cleanedPhoneNumbers }]);
+        } else {
+          setPhones([{ date: selectedDate, phones: [] }]);
+        }
+        setProgress(100);
       } else {
         const [year, month] = selectedDate.split('-').map(Number);
         const daysInMonth = getDaysInMonth(year, month - 1);
@@ -67,14 +76,19 @@ const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay, setPro
         
         for (let day = 1; day <= daysInMonth; day++) {
           const date = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-          const dayData = await fetchDataForDate(date);
-          monthData.push({ date, phones: dayData });
+          const currentDateObj = new Date(date);
           
-          // Обновляем прогресс в зависимости от текущего дня
+          if (currentDateObj <= currentDate) {
+            const dayData = await fetchDataForDate(date);
+            monthData.push({ date, phones: dayData });
+          } else {
+            monthData.push({ date, phones: [] });
+          }
+          
           setProgress(Math.round((day / daysInMonth) * 100));
           
-          if (day < daysInMonth) {
-            await delay(500); // Задержка между запросами
+          if (day < daysInMonth && currentDateObj <= currentDate) {
+            await delay(500);
           }
         }
         setPhones(monthData);

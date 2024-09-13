@@ -288,12 +288,15 @@ const Main = ({setProgress}) => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const calendarRef = useRef(null);
 
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth();
 
   const months = [
     'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 
     'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
   ];
 
+const availableMonths = months.slice(0, currentMonth + 1);
 
   const handleMonthSelect = (event) => {
     const selectedMonth = event.target.value;
@@ -391,30 +394,40 @@ const Main = ({setProgress}) => {
             {selectedDate}
           </DateInput>
           :
-          <MonthSelect onChange={handleMonthSelect}>
-            {months.map((month, index) => (
+          <MonthSelect onChange={handleMonthSelect} value={months[new Date(selectedDate).getMonth()]}>
+            {availableMonths.map((month, index) => (
               <option key={index} value={month}>{month}</option>
             ))}
           </MonthSelect>
         }
       </Row>
       <Row>
-        <TapBut selectedDate={selectedDate} setPhones={setPhones} secretKey={secretKey} setChechKey={setChechKey} isDay={isDay} setProgress={setProgress} />
+        <TapBut 
+          selectedDate={selectedDate} 
+          setPhones={setPhones} 
+          secretKey={secretKey} 
+          setChechKey={setChechKey} 
+          isDay={isDay} 
+          setProgress={setProgress}
+          currentDate={currentDate}
+        />
       </Row>
       {isDay ? (
         // Отображение для режима "день"
         <Row>
           <IdWrapper>
-            {phones.map((phoneData, index) => (
-              <div key={index}>
-                <p>Дата: {phoneData.date}</p>
-                {phoneData.phones.map((phone, phoneIndex) => (
+            {phones.length > 0 && phones[0] && phones[0].phones ? (
+              <div>
+                <p>Дата: {phones[0].date}</p>
+                {phones[0].phones.map((phone, phoneIndex) => (
                   <p key={phoneIndex}>
                     {phoneIndex + 1}: {phone}
                   </p>
                 ))}
               </div>
-            ))}
+            ) : (
+              <p>Нет данных для отображения</p>
+            )}
           </IdWrapper>
         </Row>
       ) : (
@@ -424,14 +437,18 @@ const Main = ({setProgress}) => {
             <NavButton onClick={handlePrevDay} disabled={currentDayIndex === 0 || phones.length === 0}>
               <ChevronLeft />
             </NavButton>
-            <DateDisplay>{phones.length > 0 ? phones[currentDayIndex].date : selectedDate}</DateDisplay>
+            <DateDisplay>
+              {phones.length > 0 && phones[currentDayIndex] 
+                ? phones[currentDayIndex].date 
+                : selectedDate}
+            </DateDisplay>
             <NavButton onClick={handleNextDay} disabled={currentDayIndex === phones.length - 1 || phones.length === 0}>
               <ChevronRight />
             </NavButton>
           </DayNavigation>
           <Row>
             <IdWrapper>
-              {phones.length > 0 ? (
+              {phones.length > 0 && phones[currentDayIndex] && phones[currentDayIndex].phones ? (
                 phones[currentDayIndex].phones.map((phone, index) => (
                   <p key={index}>
                     {index + 1}: {phone}
