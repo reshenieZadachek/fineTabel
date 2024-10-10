@@ -29,7 +29,7 @@ const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay, setPro
     let allMas = [];
     const firtsResponse = await httpGetSpam(date, 0, 0, secretKey);
     firtsResponse['requests'].forEach(el => {
-      if (el['project'] && el['project']['id'] === 1 && el['communications'] && el['communications']['0'] && el['communications']['0']['phones']) {
+      if (el['communications'] && el['communications']['0'] && el['communications']['0']['phones']) {
         allMas.push(el['communications']['0']['phones']);
       }
     });
@@ -39,7 +39,7 @@ const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay, setPro
     for (let i = 1; i < totalPages; i++) {
       const response = await httpGetSpam(date, 1, i * 20, secretKey);
       response['requests'].forEach(el => {
-        if (el['project'] && el['project']['id'] === 1 && el['communications'] && el['communications']['0'] && el['communications']['0']['phones']) {
+        if (el['communications'] && el['communications']['0'] && el['communications']['0']['phones']) {
           allMas.push(el['communications']['0']['phones']);
         }
       });
@@ -94,9 +94,7 @@ const TapBut = ({ selectedDate, setPhones, secretKey, setChechKey, isDay, setPro
           // Прогресс по дням
           setProgress(prev => Math.min(100, prev + (100 / daysInMonth)));
           
-          if (day < daysInMonth && currentDateObj <= currentDate) {
-            await delay(500);
-          }
+          
         }
         setPhones(monthData);
       }
