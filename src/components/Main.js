@@ -454,7 +454,7 @@ const availableMonths = months.slice(0, currentMonth + 1);
                 <p>Дата: {phones[0].date}</p>
                 {phones[0].phones.map((phone, phoneIndex) => (
                   <p key={phoneIndex}>
-                    {phoneIndex + 1}: {phone}
+                    {phone}
                   </p>
                 ))}
               </div>
